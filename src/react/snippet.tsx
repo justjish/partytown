@@ -9,7 +9,19 @@ import { partytownSnippet } from '@builder.io/partytown/integration';
  *
  * @public
  */
-export interface PartytownProps extends PartytownConfig {}
+export interface PartytownProps extends PartytownConfig {
+  /**
+   * Optionally allows you to pass props to the `<script>` element that is rendered.
+   * You can use this to provide a `nonce` value to the script tag for CSP purposes.
+   *
+   * Note: 'suppressHydrationWarning' and 'dangerouslySetInnerHTML' are intentionally
+   * omitted from the type to avoid overriding
+   */
+  scriptProps?: Omit<
+    JSX.IntrinsicElements['script'],
+    'suppressHydrationWarning' | 'dangerouslySetInnerHTML'
+  >;
+}
 
 /**
  * The React `<Partytown/>` component should be placed within the `<head>`
@@ -20,7 +32,9 @@ export interface PartytownProps extends PartytownConfig {}
  *
  * @public
  */
-export const Partytown = (props: PartytownProps = {}): any => {
+export const Partytown = (
+  { scriptProps, ...config }: PartytownProps = { scriptProps: {}, debug: false }
+): any => {
   // purposely not using useState() or useEffect() so this component
   // can also work as a React Server Component
 
@@ -34,7 +48,7 @@ export const Partytown = (props: PartytownProps = {}): any => {
       // to the <head>.
       const scriptElm = document.createElement('script');
       scriptElm.dataset.partytown = '';
-      scriptElm.innerHTML = partytownSnippet(props);
+      scriptElm.innerHTML = partytownSnippet(config);
       document.head.appendChild(scriptElm);
     }
     // should only append this script once per document, and is not dynamic
@@ -46,9 +60,15 @@ export const Partytown = (props: PartytownProps = {}): any => {
   // <script>. If this code renders as SSR HTML, then on the client it'll execute
   // and add the attribute which will tell the Client JS of the component to NOT
   // add the same script to the <head>.
-  const innerHTML = partytownSnippet(props) + 'document.currentScript.dataset.partytown="";';
+  const innerHTML = partytownSnippet(config) + 'document.currentScript.dataset.partytown="";';
 
-  return <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: innerHTML }} />;
+  return (
+    <script
+      {...scriptProps}
+      suppressHydrationWarning
+      dangerouslySetInnerHTML={{ __html: innerHTML }}
+    />
+  );
 };
 
 interface PartytownDocument extends Document {
